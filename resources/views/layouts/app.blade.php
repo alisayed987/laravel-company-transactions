@@ -8,11 +8,13 @@
 
     <title>{{ config('app.name', 'Transactions App') }}</title>
 
+    @livewireStyles
     <link rel="stylesheet" href="{{ mix('css/app.css') }}">
     <script src="{{ mix('js/app.js') }}" defer></script>
 </head>
 <body>
     <div>Content</div>
+    @livewireScripts
 </body>
 
 </html>
