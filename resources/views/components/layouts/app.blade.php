@@ -11,9 +11,13 @@
     @livewireStyles
     <link rel="stylesheet" href="{{ mix('css/app.css') }}">
     <script src="{{ mix('js/app.js') }}" defer></script>
+    <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
 </head>
 <body>
-    <div>Content</div>
+    <x-navbar />
+    <div>
+        {{ $slot }}
+    </div>
     @livewireScripts
 </body>
 
