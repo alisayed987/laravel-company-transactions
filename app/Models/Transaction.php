@@ -20,6 +20,6 @@ class Transaction extends Model
 
     public function statuses()
     {
-        return $this->belongsToMany(Status::class);
+        return $this->belongsToMany(Status::class, 'transaction_statuses');
     }
 }
