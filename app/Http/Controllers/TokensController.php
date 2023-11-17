@@ -58,7 +58,7 @@ class TokensController extends Controller
 
             return response()->json([
                 'token_id' => $token->accessToken->id,
-                'token' => $token
+                'token' => $token->plainTextToken
             ]);
         } catch (\Throwable $th) {
             Log::error($th->getMessage());
@@ -93,11 +93,11 @@ class TokensController extends Controller
                 'password' => Hash::make($request->password),
             ]);
 
-            $token = $user->createToken($request->device_name)->plainTextToken;
+            $token = $user->createToken($request->device_name);
 
             return response()->json([
                 'token_id' => $token->accessToken->id,
-                'token' => $token
+                'token' => $token->plainTextToken
             ]);
         } catch (\Throwable $th) {
             Log::error($th->getMessage());
