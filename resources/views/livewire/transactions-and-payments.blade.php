@@ -46,11 +46,14 @@
                 </tr>
             </thead>
             <tbody>
+                @php
+                    $email = auth()->user()->email
+                @endphp
                 @foreach ($transactions['data'] as $transaction)
                     <tr class="cursor-pointer hover:bg-gray-200" wire:click="selectPayment({{ $transaction['id'] }})">
                         <td class="py-2 px-4 border-b">{{ $transaction['id'] }}</td>
                         <td class="py-2 px-4 border-b">{{ $transaction['amount'] }}</td>
-                        <td class="py-2 px-4 border-b">{{ $transaction['email'] }}</td>
+                        <td class="py-2 px-4 border-b">{{ $transaction['email'] ?? $email}}</td>
                         <td class="py-2 px-4 border-b">{{ $transaction['due_on'] }}</td>
                         <td class="py-2 px-4 border-b">{{ $transaction['VAT'] }}</td>
                         <td class="py-2 px-4 border-b">{{ $transaction['is_VAT_inclusive'] ? 'Yes' : 'No' }}</td>
