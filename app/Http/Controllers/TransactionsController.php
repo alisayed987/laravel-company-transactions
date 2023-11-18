@@ -131,22 +131,26 @@ class TransactionsController extends Controller
      */
     public function customerTransactions(FormRequest $request, $authUser = null)
     {
-        $request->validate([
-            'per_page' => 'integer',
-            'page' => 'integer',
-        ]);
+        try {
+            $request->validate([
+                'per_page' => 'integer',
+                'page' => 'integer',
+            ]);
 
-        $user = null;
-        if ($authUser) { $user = $authUser; }
-        else { $user = $this->extractUserFromToken($request->header('Authorization')); }
+            if ($authUser) { $user = $authUser; }
+            else { $user = $this->extractUserFromToken($request->header('Authorization')); }
 
-        $perPage = $request->per_page ?? 5;
-        $page = $request->page ?? 1;
-        $transactions = Transaction::where('payer', $user->id)
-            ->paginate($perPage, ['*'], 'page', $page)->toArray();
+            $perPage = $request->per_page ?? 5;
+            $page = $request->page ?? 1;
+            $transactions = Transaction::where('payer', $user->id)
+                ->paginate($perPage, ['*'], 'page', $page)->toArray();
 
-        return response()->json([
-            'transactions' => $transactions,
-        ]);
+            return response()->json([
+                'transactions' => $transactions,
+            ]);
+        } catch (\Throwable $th) {
+            Log::error($th->getMessage());
+            return response()->json(['message' => $th->getMessage()], 400);
+        }
     }
 }
