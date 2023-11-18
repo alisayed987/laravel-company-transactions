@@ -1,7 +1,39 @@
 <div class="max-w-4xl mx-auto mt-8 p-6 bg-gray-100 rounded shadow-md">
-    @if ($this->selectedPayment ?? null)
-        <div>Payment code</div>
+    <!-- Payments UI -->
+    @if ($this->payments['transaction_id'] ?? null)
+        <button class="flex items center p-3 rounded-lg bg-blue-400" wire:click="backFromPayment">
+            <x-icons.left-arrow /> <span class="mx-2">Back</span>
+        </button>
+        <div class="max-w-4xl mx-auto mt-8 p-6 bg-gray-100 rounded shadow-md">
+            <div class="flex justify-evenly m-3">
+                <span> Transaction ID: {{$this->payments['transaction_id']}}</span>
+                <span> Transaction Status: {{$this->payments['transaction_current_status']}}</span>
+            </div>
+            <table class="min-w-full bg-white border border-gray-300">
+                <thead>
+                    <tr>
+                        <th class="py-2 px-4 border-b">Payment ID</th>
+                        <th class="py-2 px-4 border-b">Amount</th>
+                        <th class="py-2 px-4 border-b">Paid On</th>
+                        <th class="py-2 px-4 border-b">Remaining Amount</th>
+                        <th class="py-2 px-4 border-b">Details</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach ($payments['payments']['data'] as $payment)
+                        <tr class="hover:bg-gray-200">
+                            <td class="py-2 px-4 border-b">{{ $payment['id'] }}</td>
+                            <td class="py-2 px-4 border-b">{{ $payment['amount'] }}</td>
+                            <td class="py-2 px-4 border-b">{{ $payment['paid_on'] }}</td>
+                            <td class="py-2 px-4 border-b">{{ $payment['remaining_amount'] }}</td>
+                            <td class="py-2 px-4 border-b">{{ $payment['details'] }}</td>
+                        </tr>
+                    @endforeach
+                </tbody>
+            </table>
+        </div>
     @else
+        <!-- Transactions UI -->
         <table class="min-w-full bg-white border border-gray-300">
             <thead>
                 <tr>

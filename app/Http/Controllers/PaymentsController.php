@@ -204,11 +204,12 @@ class PaymentsController extends Controller
                 ->paginate($perPage, ['*'], 'page', $page)->toArray();
 
             $transaction = Transaction::firstWhere('id', $request->transaction_id);
-            $status = $this->getNewTransactionStatus($transaction, $payments['data'][0]['remaining_amount']);
+            $status = empty($payments['data']) ? null :
+                $this->getNewTransactionStatus($transaction, $payments['data'][0]['remaining_amount']);
 
             return response()->json([
-                'payment' => $payments,
-                'transaction_current_status' => $status->name
+                'payments' => $payments ?? [],
+                'transaction_current_status' => empty($payments['data']) ? null : $status->name
             ]);
         } catch (\Throwable $th) {
             Log::error($th->getMessage());

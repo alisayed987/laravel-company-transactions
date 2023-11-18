@@ -2,6 +2,7 @@
 
 namespace App\Livewire;
 
+use App\Http\Controllers\PaymentsController;
 use App\Http\Controllers\TransactionsController;
 use App\Models\User;
 use Illuminate\Foundation\Http\FormRequest;
@@ -10,6 +11,11 @@ use Livewire\Component;
 class TransactionsAndPayments extends Component
 {
     public ?array $transactions = null;
+    public $payments = [
+        'transaction_id' => null,
+        'payments' => null,
+        'transaction_current_status' => null
+    ];
 
     public $perPage = 10;
     public $currentPage = 1;
@@ -34,7 +40,16 @@ class TransactionsAndPayments extends Component
 
     public function selectPayment($transactionId)
     {
-        // TODO:: add payment selection logic
+        $paymentsController = new PaymentsController();
+        $body = new FormRequest([
+            'transaction_id' => $transactionId,
+        ]);
+        $res = $paymentsController->getTransactionPayments($body, auth()->user())->getData('payments');
+        $this->payments = [
+            'transaction_id' => $transactionId,
+            'payments' => $res['payments'] ?? [],
+            'transaction_current_status' => $res['transaction_current_status'] ?? null
+        ];
     }
 
     /**
@@ -83,6 +98,16 @@ class TransactionsAndPayments extends Component
             $this->currentPage -= 1;
             $this->getTransactions();
         }
+    }
+
+    /**
+     * on Clicking Back in payments view
+     *
+     * @return void
+     */
+    public function backFromPayment()
+    {
+        $this->reset('payments');
     }
 
     public function render()
