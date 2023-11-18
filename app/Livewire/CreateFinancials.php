@@ -9,7 +9,7 @@ use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Facades\Log;
 use Livewire\Component;
 
-class HomeScreen extends Component
+class CreateFinancials extends Component
 {
     public bool $transactionType = true;
 
@@ -89,6 +89,6 @@ class HomeScreen extends Component
 
     public function render()
     {
-        return view('livewire.home-screen');
+        return view('livewire.create-financials');
     }
 }
