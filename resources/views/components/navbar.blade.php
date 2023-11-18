@@ -1,10 +1,16 @@
 @auth
-    <nav x-data="{ open: false }" class="bg-blue-400 p-4 flex">
-        <div class="grow">
+    <nav x-data="{ open: false }" class="bg-blue-400 p-4 flex justify-between">
+        <div >
             Transactions App
         </div>
+        <div class="flex justify-center">
+            <a class="underline mx-3 text-white text-xl" href="{{url('/transactions')}}">View Transactions</a>
+            @if (Auth::user()->hasRole('admin'))
+                <a class="underline mx-3 text-white text-xl" href="{{url('/createFinancials')}}">Create Transactions</a>
+            @endif
+        </div>
         <!-- User Dropdown -->
-        <div class="relative inline-block text-left" x-data="{ open: false }">
+        <div class="relative inline-block text-left text-xl" x-data="{ open: false }">
             <div>
                 <button @click="open = !open" type="button" class="text-white focus:outline-none flex items-center">
                     <x-icons.navbar-user />
