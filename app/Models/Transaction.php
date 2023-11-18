@@ -22,4 +22,9 @@ class Transaction extends Model
     {
         return $this->belongsToMany(Status::class, 'transaction_statuses');
     }
+
+    public function payments()
+    {
+        return $this->hasMany(Payment::class);
+    }
 }
