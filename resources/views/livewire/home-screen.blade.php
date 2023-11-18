@@ -44,7 +44,26 @@
             <button type="submit" class="bg-blue-500 text-white py-2 px-4 rounded focus:outline-none focus:shadow-outline-blue">Submit</button>
         </form>
     @else
-        <!-- Payment Form -->
-        <div>payment code</div>
+        <form wire:submit.prevent="submitForm">
+            <div class="mb-4">
+                <label for="transactionId" class="block text-sm font-medium text-gray-700">Transaction ID:</label>
+                <input type="text" id="transactionId" wire:model="transactionId" class="mt-1 p-2 w-full border rounded focus:outline-none focus:border-blue-400">
+                @error('transactionId') <span class="text-sm text-red-500">{{ $message }}</span> @enderror
+            </div>
+
+            <div class="mb-4">
+                <label for="paymentAmount" class="block text-sm font-medium text-gray-700">Amount:</label>
+                <input type="text" id="paymentAmount" wire:model="paymentAmount" class="mt-1 p-2 w-full border rounded focus:outline-none focus:border-blue-400">
+                @error('paymentAmount') <span class="text-sm text-red-500">{{ $message }}</span> @enderror
+            </div>
+
+            <div class="mb-4">
+                <label for="paymentDetails" class="block text-sm font-medium text-gray-700">Details:</label>
+                <textarea id="paymentDetails" wire:model="paymentDetails" class="mt-1 p-2 w-full border rounded focus:outline-none focus:border-blue-400"></textarea>
+                @error('paymentDetails') <span class="text-sm text-red-500">{{ $message }}</span> @enderror
+            </div>
+
+            <button type="submit" class="bg-blue-500 text-white py-2 px-4 rounded focus:outline-none focus:shadow-outline-blue">Submit Payment</button>
+        </form>
     @endif
 </div>
