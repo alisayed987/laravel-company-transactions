@@ -2,7 +2,9 @@
 
 namespace App\Livewire;
 
+use App\Http\Controllers\PaymentsController;
 use App\Http\Controllers\TransactionsController;
+use Exception;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Facades\Log;
 use Livewire\Component;
@@ -21,7 +23,6 @@ class HomeScreen extends Component
     // Payment form fields
     public $transactionId;
     public $paymentAmount;
-    public $paidOn;
     public $paymentDetails;
 
     protected array $transactionRules = [
@@ -35,7 +36,6 @@ class HomeScreen extends Component
     protected array $paymentRules = [
         'transactionId' => 'required|string',
         'paymentAmount' => 'required|numeric',
-        'paidOn' => 'required|date',
         'paymentDetails' => 'nullable|string',
     ];
 
@@ -43,7 +43,7 @@ class HomeScreen extends Component
     {
         $this->transactionType = !$this->transactionType;
         $this->reset('amount', 'payer_email', 'due_on', 'VAT', 'is_VAT_inclusive',
-            'transactionId', 'paymentAmount', 'paidOn','paymentDetails');
+            'transactionId', 'paymentAmount','paymentDetails');
     }
 
     public function submitForm()
@@ -63,13 +63,21 @@ class HomeScreen extends Component
                     'VAT' => $this->VAT,
                     'is_VAT_inclusive' => $this->is_VAT_inclusive,
                 ]);
-                $transController = $transController->createTransaction($body, auth()->user());
+                $response = $transController->createTransaction($body, auth()->user());
+                if ($response->status() == 400) throw new Exception($response->original['message']);
             } else {
-                // Payment code
+                $paymentController = new PaymentsController();
+                $body = new FormRequest([
+                    'transaction_id' => $this->transactionId,
+                    'amount' => $this->paymentAmount,
+                    'details' => $this->paymentDetails,
+                ]);
+                $response = $paymentController->addPayment($body, auth()->user());
+                if ($response->status() == 400) throw new Exception($response->original['message']);
             }
 
             $this->reset('amount', 'payer_email', 'due_on', 'VAT', 'is_VAT_inclusive',
-                'transactionId', 'paymentAmount', 'paidOn','paymentDetails');
+                'transactionId', 'paymentAmount','paymentDetails');
 
             $this->redirect('/');
         } catch (\Throwable $th) {

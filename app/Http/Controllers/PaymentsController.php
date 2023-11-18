@@ -67,15 +67,19 @@ class PaymentsController extends Controller
      * @param FormRequest $request
      * @return void
      */
-    protected function validateTokenAndUserRole(FormRequest $request)
+    protected function validateTokenAndUserRole(FormRequest $request, $authUser = null)
     {
-        $fullToken = $request->header('Authorization') ?? null;
+        if ($authUser) {
+            $isAdmin = $authUser->hasRole('admin');
+        } else {
+            $fullToken = $request->header('Authorization') ?? null;
 
-        if (!$fullToken) throw new Exception('No token provided.');
+            if (!$fullToken) throw new Exception('No token provided.');
 
-        $isAdmin = $this->checkIfAdmin($fullToken);
+            $isAdmin = $this->checkIfAdmin($fullToken);
 
-        if (!$isAdmin) throw new Exception('Admins only can add payments');
+            if (!$isAdmin) throw new Exception('Admins only can add payments');
+        }
     }
 
     /**
@@ -186,7 +190,7 @@ class PaymentsController extends Controller
      * @param FormRequest $request
      * @return Response
      */
-    public function addPayment(FormRequest $request)
+    public function addPayment(FormRequest $request, User $authUser = null)
     {
         try {
             $request->validate([
@@ -197,7 +201,7 @@ class PaymentsController extends Controller
 
             $transaction = $this->validateTransaction($request->transaction_id);
 
-            $this->validateTokenAndUserRole($request);
+            $this->validateTokenAndUserRole($request, $authUser);
 
             $newRemaining = $this->getNewRemainingAmount($request, $transaction);
 
