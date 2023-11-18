@@ -36,7 +36,7 @@ trait AbilityTrait
      * @param User $authUser
      * @return void
      */
-    protected function validateTokenAndUserRole(FormRequest $request, $authUser = null)
+    protected function validateTokenAndAdminRole(FormRequest $request, $authUser = null)
     {
         if ($authUser) {
             $isAdmin = $authUser->hasRole('admin');

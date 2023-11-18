@@ -80,7 +80,7 @@ class TransactionsController extends Controller
 
             if (!$payer) throw new Exception('Email does not exist.');
 
-            $this->validateTokenAndUserRole($request, $authUser);
+            $this->validateTokenAndAdminRole($request, $authUser);
 
             $dueOnDate = Carbon::parse($request->due_on);
 
@@ -96,4 +96,5 @@ class TransactionsController extends Controller
             return response()->json(['message' => $th->getMessage()], 400);
         }
     }
+            $this->validateTokenAndAdminRole($request, $authUser);
 }

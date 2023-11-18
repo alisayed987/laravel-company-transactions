@@ -162,7 +162,7 @@ class PaymentsController extends Controller
 
             $transaction = $this->validateTransaction($request->transaction_id);
 
-            $this->validateTokenAndUserRole($request, $authUser);
+            $this->validateTokenAndAdminRole($request, $authUser);
 
             $newRemaining = $this->getNewRemainingAmount($request, $transaction);
 
