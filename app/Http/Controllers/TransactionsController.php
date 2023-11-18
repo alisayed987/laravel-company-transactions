@@ -109,7 +109,9 @@ class TransactionsController extends Controller
 
             $perPage = $request->per_page ?? 5;
             $page = $request->page ?? 1;
-            $transactions = Transaction::paginate($perPage, ['*'], 'page', $page)->toArray();
+            $transactions = Transaction::select('transactions.*', 'users.email')
+                ->leftJoin('users', 'transactions.payer', 'users.id')
+                ->paginate($perPage, ['*'], 'page', $page)->toArray();
 
             return response()->json([
                 'transactions' => $transactions,
