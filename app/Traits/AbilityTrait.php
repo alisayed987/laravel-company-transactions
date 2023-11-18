@@ -16,6 +16,20 @@ trait AbilityTrait
      */
     private function checkIfAdmin($fullToken)
     {
+        /**
+         * @var User
+         */
+        $user = $this->extractUserFromToken($fullToken);
+
+        return $user->hasRole('admin');
+    }
+
+    /**
+     * @param string $fullToken
+     * @return void
+     */
+    protected function extractUserFromToken($fullToken)
+    {
         [$bearer_id, $token] = explode('|', $fullToken, 2);
 
         $tokenId = explode(' ', $bearer_id, 2)[1];
@@ -26,7 +40,7 @@ trait AbilityTrait
             ->join('personal_access_tokens', 'users.id', 'personal_access_tokens.tokenable_id')
             ->firstWhere('personal_access_tokens.id', $tokenId);
 
-        return $user->hasRole('admin');
+        return $user;
     }
 
     /**
