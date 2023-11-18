@@ -40,7 +40,7 @@ class TransactionsController extends Controller
      * @param FormRequest $request
      * @return Response
      */
-    public function createTransaction(FormRequest $request)
+    public function createTransaction(FormRequest $request, User $authUser = null)
     {
         try {
             $request->validate([
@@ -55,10 +55,17 @@ class TransactionsController extends Controller
 
             if (!$payer) throw new Exception('Email does not exist.');
 
-            $fullToken = $request->header('Authorization');
-            $isAdmin = $this->checkIfAdmin($fullToken);
+            if ($authUser) {
+                $isAdmin = $authUser->hasRole('admin');
+            } else {
+                $fullToken = $request->header('Authorization') ?? null;
 
-            if (!$isAdmin) throw new Exception('Admins only can add transactions');
+                if (!$fullToken) throw new Exception('No token provided.');
+
+                $isAdmin = $this->checkIfAdmin($fullToken);
+
+                if (!$isAdmin) throw new Exception('Admins only can add transactions');
+            }
 
             $duoOnDate = Carbon::parse($request->due_on);
             $isOverDue = Carbon::now()->isAfter($duoOnDate);
