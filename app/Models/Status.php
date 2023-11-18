@@ -16,6 +16,6 @@ class Status extends Model
 
     public function transactions()
     {
-        return $this->belongsToMany(Transaction::class, 'transaction_statuses');
+        return $this->belongsToMany(Transaction::class, 'transaction_statuses')->withTimestamps();
     }
 }
