@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Status;
 use App\Models\Transaction;
 use App\Models\User;
+use App\Traits\AbilityTrait;
 use Exception;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Http\Client\Response;
@@ -13,27 +14,51 @@ use Illuminate\Support\Facades\Log;
 
 class TransactionsController extends Controller
 {
+    use AbilityTrait;
+
     /**
-     * Checks if request sent from admin
+     * Get Transaction status based on current time & due on date
      *
-     * @param string $fullToken
-     * @return boolean
+     * @param Carbon $dueOnDate
+     * @return Status
      */
-    private function checkIfAdmin($fullToken)
+    protected function getNewTransactionStatus($dueOnDate)
     {
-        [$bearer_id, $token] = explode('|', $fullToken, 2);
+        $isOverDue = Carbon::now()->isAfter($dueOnDate);
+        $transactionStatus = null;
 
-        $tokenId = explode(' ', $bearer_id, 2)[1];
-        /**
-         * @var User
-         */
-        $user = User::select(['*', 'personal_access_tokens.id as p_id', 'users.id as id'])
-            ->join('personal_access_tokens', 'users.id', 'personal_access_tokens.tokenable_id')
-            ->firstWhere('personal_access_tokens.id', $tokenId);
+        if ($isOverDue) {
+            $transactionStatus = Status::firstWhere('name', 'Overdue');
+        } else {
+            $transactionStatus = Status::firstWhere('name', 'Outstanding');
+        }
 
-        return $user->hasRole('admin');
+        return $transactionStatus;
     }
 
+    /**
+     * Add transaction with its on store status in database
+     *
+     * @param FormRequest $request
+     * @param User $payer
+     * @param Carbon $dueOnDate
+     * @param Status $transactionStatus
+     * @return Transaction
+     */
+    function insertTransaction(FormRequest $request, User $payer, $dueOnDate, $transactionStatus)
+    {
+        $transaction = Transaction::create([
+            'amount' => $request->amount,
+            'payer' => $payer->id,
+            'due_on' => $dueOnDate,
+            'VAT' => $request->VAT,
+            'is_VAT_inclusive' => $request->is_VAT_inclusive,
+        ]);
+
+        $transaction->statuses()->attach($transactionStatus->id);
+
+        return $transaction;
+    }
     /**
      * Create transaction with its initial status
      *
@@ -55,37 +80,13 @@ class TransactionsController extends Controller
 
             if (!$payer) throw new Exception('Email does not exist.');
 
-            if ($authUser) {
-                $isAdmin = $authUser->hasRole('admin');
-            } else {
-                $fullToken = $request->header('Authorization') ?? null;
+            $this->validateTokenAndUserRole($request, $authUser);
 
-                if (!$fullToken) throw new Exception('No token provided.');
+            $dueOnDate = Carbon::parse($request->due_on);
 
-                $isAdmin = $this->checkIfAdmin($fullToken);
+            $transactionStatus = $this->getNewTransactionStatus($dueOnDate);
 
-                if (!$isAdmin) throw new Exception('Admins only can add transactions');
-            }
-
-            $duoOnDate = Carbon::parse($request->due_on);
-            $isOverDue = Carbon::now()->isAfter($duoOnDate);
-
-            $transaction = Transaction::create([
-                'amount' => $request->amount,
-                'payer' => $payer->id,
-                'due_on' => $duoOnDate,
-                'VAT' => $request->VAT,
-                'is_VAT_inclusive' => $request->is_VAT_inclusive,
-            ]);
-
-            $transactionStatusId = null;
-
-            if ($isOverDue) {
-                $transactionStatusId = Status::firstWhere('name', 'Overdue')->id;
-            } else {
-                $transactionStatusId = Status::firstWhere('name', 'Outstanding')->id;
-            }
-            $transaction->statuses()->attach($transactionStatusId);
+            $transaction = $this->insertTransaction($request, $payer, $dueOnDate, $transactionStatus);
 
             return response()->json([
                 'transaction' => $transaction
@@ -94,6 +95,5 @@ class TransactionsController extends Controller
             Log::error($th->getMessage());
             return response()->json(['message' => $th->getMessage()], 400);
         }
-
     }
 }

@@ -6,6 +6,7 @@ use App\Models\Payment;
 use App\Models\Status;
 use App\Models\Transaction;
 use App\Models\User;
+use App\Traits\AbilityTrait;
 use Carbon\Carbon;
 use Exception;
 use Illuminate\Foundation\Http\FormRequest;
@@ -15,26 +16,7 @@ use Illuminate\Support\Facades\Log;
 
 class PaymentsController extends Controller
 {
-    /**
-     * Checks if request sent from admin
-     *
-     * @param string $fullToken
-     * @return boolean
-     */
-    private function checkIfAdmin($fullToken)
-    {
-        [$bearer_id, $token] = explode('|', $fullToken, 2);
-
-        $tokenId = explode(' ', $bearer_id, 2)[1];
-        /**
-         * @var User
-         */
-        $user = User::select(['*', 'personal_access_tokens.id as p_id', 'users.id as id'])
-            ->join('personal_access_tokens', 'users.id', 'personal_access_tokens.tokenable_id')
-            ->firstWhere('personal_access_tokens.id', $tokenId);
-
-        return $user->hasRole('admin');
-    }
+    use AbilityTrait;
 
     /**
      * Validate transaction to:
@@ -59,27 +41,6 @@ class PaymentsController extends Controller
         }
 
         return $transaction;
-    }
-
-    /**
-     * Check token and user role to have ability to proceed
-     *
-     * @param FormRequest $request
-     * @return void
-     */
-    protected function validateTokenAndUserRole(FormRequest $request, $authUser = null)
-    {
-        if ($authUser) {
-            $isAdmin = $authUser->hasRole('admin');
-        } else {
-            $fullToken = $request->header('Authorization') ?? null;
-
-            if (!$fullToken) throw new Exception('No token provided.');
-
-            $isAdmin = $this->checkIfAdmin($fullToken);
-
-            if (!$isAdmin) throw new Exception('Admins only can add payments');
-        }
     }
 
     /**
