@@ -80,7 +80,7 @@ class TransactionsController extends Controller
 
             if (!$payer) throw new Exception('Email does not exist.');
 
-            $this->validateTokenAndUserRole($request, $authUser);
+            $this->validateTokenAndAdminRole($request, $authUser);
 
             $dueOnDate = Carbon::parse($request->due_on);
 
@@ -95,5 +95,58 @@ class TransactionsController extends Controller
             Log::error($th->getMessage());
             return response()->json(['message' => $th->getMessage()], 400);
         }
+    }
+
+    public function allTransactions(FormRequest $request, $authUser = null)
+    {
+        try {
+            $request->validate([
+                'per_page' => 'integer',
+                'page' => 'integer',
+            ]);
+
+            $this->validateTokenAndAdminRole($request, $authUser);
+
+            $perPage = $request->per_page ?? 5;
+            $page = $request->page ?? 1;
+            $transactions = Transaction::select('transactions.*', 'users.email')
+                ->leftJoin('users', 'transactions.payer', 'users.id')
+                ->paginate($perPage, ['*'], 'page', $page)->toArray();
+
+            return response()->json([
+                'transactions' => $transactions,
+            ]);
+        } catch (\Throwable $th) {
+            Log::error($th->getMessage());
+            return response()->json(['message' => $th->getMessage()], 400);
+        }
+    }
+
+    /**
+     * Get current Auth user Transactions
+     *
+     * @param FormRequest $request
+     * @param User $authUser
+     * @return Response
+     */
+    public function customerTransactions(FormRequest $request, $authUser = null)
+    {
+        $request->validate([
+            'per_page' => 'integer',
+            'page' => 'integer',
+        ]);
+
+        $user = null;
+        if ($authUser) { $user = $authUser; }
+        else { $user = $this->extractUserFromToken($request->header('Authorization')); }
+
+        $perPage = $request->per_page ?? 5;
+        $page = $request->page ?? 1;
+        $transactions = Transaction::where('payer', $user->id)
+            ->paginate($perPage, ['*'], 'page', $page)->toArray();
+
+        return response()->json([
+            'transactions' => $transactions,
+        ]);
     }
 }

@@ -29,8 +29,8 @@ class PaymentsController extends Controller
     public function validateTransaction($transactionId)
     {
         $transaction = Transaction::select('transactions.*', 'statuses.name as status_name')
-            ->join('transaction_statuses', 'transactions.id', 'transaction_statuses.transaction_id')
-            ->join('statuses', 'statuses.id', 'transaction_statuses.status_id')
+            ->leftJoin('transaction_statuses', 'transactions.id', 'transaction_statuses.transaction_id')
+            ->leftJoin('statuses', 'statuses.id', 'transaction_statuses.status_id')
             ->orderBy('transaction_statuses.created_at', 'DESC')
             ->firstWhere('transactions.id', $transactionId);
 
@@ -162,7 +162,7 @@ class PaymentsController extends Controller
 
             $transaction = $this->validateTransaction($request->transaction_id);
 
-            $this->validateTokenAndUserRole($request, $authUser);
+            $this->validateTokenAndAdminRole($request, $authUser);
 
             $newRemaining = $this->getNewRemainingAmount($request, $transaction);
 
