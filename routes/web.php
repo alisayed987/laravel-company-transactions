@@ -1,6 +1,7 @@
 <?php
 
 use App\Livewire\HomeScreen;
+use App\Livewire\TransactionsAndPayments;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -15,6 +16,9 @@ use Illuminate\Support\Facades\Route;
 */
 
 Route::get('/', HomeScreen::class)
+->middleware(['auth'])->name('home');
+
+Route::get('/transactions', TransactionsAndPayments::class)
 ->middleware(['auth'])->name('home');
 
 require __DIR__.'/auth.php';
