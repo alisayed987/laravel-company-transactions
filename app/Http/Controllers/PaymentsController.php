@@ -62,6 +62,125 @@ class PaymentsController extends Controller
     }
 
     /**
+     * Check token and user role to have ability to proceed
+     *
+     * @param FormRequest $request
+     * @return void
+     */
+    protected function validateTokenAndUserRole(FormRequest $request)
+    {
+        $fullToken = $request->header('Authorization') ?? null;
+
+        if (!$fullToken) throw new Exception('No token provided.');
+
+        $isAdmin = $this->checkIfAdmin($fullToken);
+
+        if (!$isAdmin) throw new Exception('Admins only can add payments');
+    }
+
+    /**
+     * Get remaining amount after this payment to save it with payment (will be used as a log)
+     *
+     * @param FormRequest $request
+     * @param Transaction $transaction
+     * @return double
+     */
+    protected function getNewRemainingAmount(FormRequest $request, Transaction $transaction)
+    {
+        $allPayments = Payment::where('transaction_id', $request->transaction_id)
+            ->orderBy('created_at', 'DESC')->get();
+
+        $newRemaining = null;
+
+        /**
+         * Check if there was old payments for the same Transaction
+         */
+        if ($allPayments->count() > 0) {
+            $lastPayment = $allPayments->first();
+            $newRemaining = (double) $lastPayment['remaining_amount'] - (double) $request->amount;
+        } else {
+            $newRemaining = (double) $transaction->amount - (double) $request->amount;
+        }
+
+        return $newRemaining;
+    }
+
+    /**
+     * Get Transaction status depending on transaction duo_on & remaining amount
+     *
+     * @param Transaction $transaction
+     * @param double $newRemaining
+     * @return Status
+     */
+    protected function getNewTransactionStatus(Transaction $transaction, $newRemaining)
+    {
+        /**
+         * Check the new store status for the Transaction
+         */
+        $transactionStatus = null;
+        if ($newRemaining <= 0) {
+            $transactionStatus = Status::firstWhere('name', 'Paid');
+        } else {
+            $duoOnDate = Carbon::parse($transaction->due_on);
+            $isOverDue = Carbon::now()->isAfter($duoOnDate);
+            if ($isOverDue) {
+                $transactionStatus = Status::firstWhere('name', 'Overdue');
+            } else {
+                $transactionStatus = Status::firstWhere('name', 'Outstanding');
+            }
+        }
+
+        return $transactionStatus;
+    }
+
+    /**
+     * Save payment and new transaction status into database
+     *
+     * @param FormRequest $request
+     * @param double $newRemaining
+     * @param Transaction $transaction
+     * @param Status $transactionStatus
+     * @return Payment
+     */
+    protected function savePaymentAndStatus(
+        $request,
+        $newRemaining,
+        $transaction,
+        $transactionStatus,
+    )
+    {
+        $payment = null;
+        $dbTransactionSuccess = false;
+        DB::transaction(function () use (
+            $request,
+            $newRemaining,
+            &$payment,
+            $transaction,
+            $transactionStatus,
+            &$dbTransactionSuccess
+        ) {
+            $payment = Payment::create([
+                'transaction_id' => $request->transaction_id,
+                'amount' => $request->amount,
+                'paid_on' => Carbon::now(),
+                'remaining_amount' => $newRemaining,
+                'details' => $request->details
+            ]);
+
+            $transaction->statuses()->attach($transactionStatus->id);
+
+            /**
+             * Will only be true if no issue above lead to rollback
+             */
+            $dbTransactionSuccess = true;
+        }, 3);
+
+        if (!$dbTransactionSuccess) throw new Exception('Database transaction rolled back.');
+
+        return $payment;
+    }
+
+    /**
      * Add payment & add new on store status
      *
      * @param FormRequest $request
@@ -78,70 +197,18 @@ class PaymentsController extends Controller
 
             $transaction = $this->validateTransaction($request->transaction_id);
 
-            $fullToken = $request->header('Authorization') ?? null;
+            $this->validateTokenAndUserRole($request);
 
-            if (!$fullToken) throw new Exception('No token provided.');
+            $newRemaining = $this->getNewRemainingAmount($request, $transaction);
 
-            $isAdmin = $this->checkIfAdmin($fullToken);
+            $transactionStatus = $this->getNewTransactionStatus($transaction, $newRemaining);
 
-            if (!$isAdmin) throw new Exception('Admins only can add payments');
-
-            $allPayments = Payment::where('transaction_id', $request->transaction_id)
-                ->orderBy('created_at', 'DESC')->get();
-
-            /**
-             * Check if there was old payments for the same Transaction
-             */
-            if ($allPayments->count() > 0) {
-                $lastPayment = $allPayments->first();
-                $newRemaining = (double) $lastPayment['remaining_amount'] - (double) $request->amount;
-            } else {
-                $newRemaining = (double) $transaction->amount - $request->amount;
-            }
-
-            /**
-             * Check the new store status for the Transaction
-             */
-            $transactionStatus = null;
-            if ($newRemaining <= 0) {
-                $transactionStatus = Status::firstWhere('name', 'Paid');
-            } else {
-                $duoOnDate = Carbon::parse($transaction->due_on);
-                $isOverDue = Carbon::now()->isAfter($duoOnDate);
-                if ($isOverDue) {
-                    $transactionStatus = Status::firstWhere('name', 'Overdue');
-                } else {
-                    $transactionStatus = Status::firstWhere('name', 'Outstanding');
-                }
-            }
-
-            $payment = null;
-            $dbTransactionSuccess = false;
-            DB::transaction(function () use (
+            $payment = $this->savePaymentAndStatus(
                 $request,
                 $newRemaining,
-                &$payment,
                 $transaction,
                 $transactionStatus,
-                &$dbTransactionSuccess
-            ) {
-                $payment = Payment::create([
-                    'transaction_id' => $request->transaction_id,
-                    'amount' => $request->amount,
-                    'paid_on' => Carbon::now(),
-                    'remaining_amount' => $newRemaining,
-                    'details' => $request->details
-                ]);
-
-                $transaction->statuses()->attach($transactionStatus->id);
-
-                /**
-                 * Will only be true if no issue above lead to rollback
-                 */
-                $dbTransactionSuccess = true;
-            }, 3);
-
-            if (!$dbTransactionSuccess) throw new Exception('Database transaction rolled back.');
+            );
 
             return response()->json([
                 'payment' => $payment,
