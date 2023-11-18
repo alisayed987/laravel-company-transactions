@@ -20,6 +20,9 @@ class TransactionsAndPayments extends Component
     public $perPage = 10;
     public $currentPage = 1;
 
+    public $paymentsPerPage = 10;
+    public $paymentsCurrentPage = 1;
+
     public function mount()
     {
         $this->getTransactions();
@@ -43,6 +46,8 @@ class TransactionsAndPayments extends Component
         $paymentsController = new PaymentsController();
         $body = new FormRequest([
             'transaction_id' => $transactionId,
+            'per_page' => $this->paymentsPerPage,
+            'page' => $this->paymentsCurrentPage,
         ]);
         $res = $paymentsController->getTransactionPayments($body, auth()->user())->getData('payments');
         $this->payments = [
