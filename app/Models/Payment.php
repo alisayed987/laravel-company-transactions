@@ -6,16 +6,20 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
-class Status extends Model
+class Payment extends Model
 {
     use HasFactory, SoftDeletes;
 
     public $fillable = [
-        'name',
+        'transaction_id',
+        'amount',
+        'paid_on',
+        'remaining_amount',
+        'details',
     ];
 
-    public function transactions()
+    public function transaction()
     {
-        return $this->belongsToMany(Transaction::class, 'transaction_statuses')->withTimestamps();
+        return $this->belongsTo(Transaction::class);
     }
 }
