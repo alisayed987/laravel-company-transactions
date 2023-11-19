@@ -7,6 +7,7 @@
             <a class="underline mx-3 text-white text-xl" href="{{url('/transactions')}}">View Transactions</a>
             @if (Auth::user()->hasRole('admin'))
                 <a class="underline mx-3 text-white text-xl" href="{{url('/createFinancials')}}">Create Transactions/Payment</a>
+                <a class="underline mx-3 text-white text-xl" href="{{url('/generateReports')}}">Show Report Data</a>
             @endif
         </div>
         <!-- User Dropdown -->

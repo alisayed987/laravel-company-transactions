@@ -1,6 +1,7 @@
 <?php
 
 use App\Livewire\CreateFinancials;
+use App\Livewire\GenerateReports;
 use App\Livewire\TransactionsAndPayments;
 use Illuminate\Support\Facades\Route;
 
@@ -24,5 +25,8 @@ Route::get('/createFinancials', CreateFinancials::class)
 
 Route::get('/transactions', TransactionsAndPayments::class)
 ->middleware(['auth'])->name('/transactions');
+
+Route::get('/generateReports', GenerateReports::class)
+->middleware(['auth'])->name('/generateReports');
 
 require __DIR__.'/auth.php';

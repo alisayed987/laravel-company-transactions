@@ -158,4 +158,45 @@ class TransactionsController extends Controller
             return response()->json(['message' => $th->getMessage()], 400);
         }
     }
+
+    /**
+     * Get current Auth user Transactions
+     *
+     * @param FormRequest $request
+     * @param User $authUser
+     * @return Response
+     */
+    public function getReport(FormRequest $request, $authUser = null)
+    {
+        try {
+            $request->validate([
+                'from' => 'required|date',
+                'to' => 'required|date',
+            ]);
+
+            $this->validateTokenAndAdminRole($request, $authUser);
+
+            $from = Carbon::parse($request->from);
+            $to = Carbon::parse($request->to);
+
+            $report = Transaction::selectRaw(
+                    "sum(case when is_paid = true then 1 else 0 end) AS paidCount,
+                    sum(case when TIMESTAMPDIFF(SECOND, Now(), due_on) > 0 AND is_paid = false then 1 else 0 end) AS overDueCount,
+                    sum(case when  TIMESTAMPDIFF(SECOND, Now(), due_on) < 0 AND is_paid = false then 1 else 0 end) AS outStandingCount"
+                )
+                ->whereBetween('created_at', [$from, $to])
+                ->get()->first();
+
+            return response()->json([
+                'from' => $from,
+                'to' => $to,
+                'paid' => $report->paidCount,
+                'outstanding' => $report->overDueCount,
+                'overdue' => $report->outStandingCount
+            ]);
+        } catch (\Throwable $th) {
+            Log::error($th->getMessage());
+            return response()->json(['message' => $th->getMessage()], 400);
+        }
+    }
 }
