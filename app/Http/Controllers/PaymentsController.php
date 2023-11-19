@@ -184,4 +184,36 @@ class PaymentsController extends Controller
             return response()->json(['message' => $th->getMessage()], 400);
         }
     }
+
+    /**
+     * @param FormRequest $request
+     * @return Response
+     */
+    public function getTransactionPayments(FormRequest $request, User $authUser = null)
+    {
+        try {
+            $request->validate([
+                'transaction_id' => 'required|integer',
+            ]);
+
+            $perPage = $request->per_page ?? 10;
+            $page = $request->page ?? 1;
+
+            $payments = Payment::where('transaction_id', $request->transaction_id)
+                ->orderBy('created_at', 'DESC')
+                ->paginate($perPage, ['*'], 'page', $page)->toArray();
+
+            $transaction = Transaction::firstWhere('id', $request->transaction_id);
+            $status = empty($payments['data']) ? null :
+                $this->getNewTransactionStatus($transaction, $payments['data'][0]['remaining_amount']);
+
+            return response()->json([
+                'payments' => $payments ?? [],
+                'transaction_current_status' => empty($payments['data']) ? null : $status->name
+            ]);
+        } catch (\Throwable $th) {
+            Log::error($th->getMessage());
+            return response()->json(['message' => $th->getMessage()], 400);
+        }
+    }
 }
