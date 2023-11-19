@@ -18,11 +18,6 @@ class Transaction extends Model
         'is_VAT_inclusive',
     ];
 
-    public function statuses()
-    {
-        return $this->belongsToMany(Status::class, 'transaction_statuses')->withTimestamps();
-    }
-
     public function payments()
     {
         return $this->hasMany(Payment::class);
