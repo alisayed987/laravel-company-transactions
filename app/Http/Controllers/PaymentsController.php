@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Definitions\TransactionsStatuses;
 use App\Models\Payment;
 use App\Models\Status;
 use App\Models\Transaction;
@@ -28,15 +29,11 @@ class PaymentsController extends Controller
      */
     public function validateTransaction($transactionId)
     {
-        $transaction = Transaction::select('transactions.*', 'statuses.name as status_name')
-            ->leftJoin('transaction_statuses', 'transactions.id', 'transaction_statuses.transaction_id')
-            ->leftJoin('statuses', 'statuses.id', 'transaction_statuses.status_id')
-            ->orderBy('transaction_statuses.created_at', 'DESC')
-            ->firstWhere('transactions.id', $transactionId);
+        $transaction = Transaction::firstWhere('id', $transactionId);
 
         if (!$transaction) throw new Exception('transaction id does not exist.');
 
-        if (strtolower($transaction->status_name) == 'paid') {
+        if ($transaction->is_paid == true) {
             throw new Exception('Transaction already paid.');
         }
 
@@ -71,31 +68,24 @@ class PaymentsController extends Controller
     }
 
     /**
-     * Get Transaction status depending on transaction duo_on & remaining amount
+     * Get transaction current status (for new Created Transaction --> not "Paid" yet)
+     * either "Outstanding" or "Overdue"
      *
      * @param Transaction $transaction
-     * @param double $newRemaining
      * @return Status
      */
-    protected function getNewTransactionStatus(Transaction $transaction, $newRemaining)
+    protected function getNewTransactionStatus(Transaction $transaction)
     {
-        /**
-         * Check the new store status for the Transaction
-         */
-        $transactionStatus = null;
-        if ($newRemaining <= 0) {
-            $transactionStatus = Status::firstWhere('name', 'Paid');
-        } else {
-            $duoOnDate = Carbon::parse($transaction->due_on);
-            $isOverDue = Carbon::now()->isAfter($duoOnDate);
-            if ($isOverDue) {
-                $transactionStatus = Status::firstWhere('name', 'Overdue');
-            } else {
-                $transactionStatus = Status::firstWhere('name', 'Outstanding');
-            }
-        }
+        if ($transaction->is_paid == true) return TransactionsStatuses::PAID;
 
-        return $transactionStatus;
+        $duoOnDate = Carbon::parse($transaction->due_on);
+        $isOverDue = Carbon::now()->isAfter($duoOnDate);
+
+        if ($isOverDue) {
+            return TransactionsStatuses::OVERDUE;
+        } else {
+            return TransactionsStatuses::OUTSTANDING;
+        }
     }
 
     /**
@@ -104,14 +94,12 @@ class PaymentsController extends Controller
      * @param FormRequest $request
      * @param double $newRemaining
      * @param Transaction $transaction
-     * @param Status $transactionStatus
      * @return Payment
      */
     protected function savePaymentAndStatus(
         $request,
         $newRemaining,
         $transaction,
-        $transactionStatus,
     )
     {
         $payment = null;
@@ -121,7 +109,6 @@ class PaymentsController extends Controller
             $newRemaining,
             &$payment,
             $transaction,
-            $transactionStatus,
             &$dbTransactionSuccess
         ) {
             $payment = Payment::create([
@@ -132,7 +119,10 @@ class PaymentsController extends Controller
                 'details' => $request->details
             ]);
 
-            $transaction->statuses()->attach($transactionStatus->id);
+            if ($newRemaining <= 0) {
+                $transaction->is_paid = true;
+                $transaction->save();
+            }
 
             /**
              * Will only be true if no issue above lead to rollback
@@ -166,18 +156,17 @@ class PaymentsController extends Controller
 
             $newRemaining = $this->getNewRemainingAmount($request, $transaction);
 
-            $transactionStatus = $this->getNewTransactionStatus($transaction, $newRemaining);
+            $transactionStatus = $this->getNewTransactionStatus($transaction);
 
             $payment = $this->savePaymentAndStatus(
                 $request,
                 $newRemaining,
                 $transaction,
-                $transactionStatus,
             );
 
             return response()->json([
                 'payment' => $payment,
-                'new_stored_transaction_status' => $transactionStatus->name
+                'new_stored_transaction_status' => $transactionStatus
             ]);
         } catch (\Throwable $th) {
             Log::error($th->getMessage());
@@ -204,12 +193,11 @@ class PaymentsController extends Controller
                 ->paginate($perPage, ['*'], 'page', $page)->toArray();
 
             $transaction = Transaction::firstWhere('id', $request->transaction_id);
-            $status = empty($payments['data']) ? null :
-                $this->getNewTransactionStatus($transaction, $payments['data'][0]['remaining_amount']);
+            $status = $this->getNewTransactionStatus($transaction);
 
             return response()->json([
                 'payments' => $payments ?? [],
-                'transaction_current_status' => empty($payments['data']) ? null : $status->name
+                'transaction_current_status' => $status
             ]);
         } catch (\Throwable $th) {
             Log::error($th->getMessage());
