@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Definitions\TransactionsStatuses;
 use App\Models\Status;
 use App\Models\Transaction;
 use App\Models\User;
@@ -25,15 +26,12 @@ class TransactionsController extends Controller
     protected function getNewTransactionStatus($dueOnDate)
     {
         $isOverDue = Carbon::now()->isAfter($dueOnDate);
-        $transactionStatus = null;
 
         if ($isOverDue) {
-            $transactionStatus = Status::firstWhere('name', 'Overdue');
+            return TransactionsStatuses::OVERDUE;
         } else {
-            $transactionStatus = Status::firstWhere('name', 'Outstanding');
+            return TransactionsStatuses::OUTSTANDING;
         }
-
-        return $transactionStatus;
     }
 
     /**
@@ -45,7 +43,7 @@ class TransactionsController extends Controller
      * @param Status $transactionStatus
      * @return Transaction
      */
-    function insertTransaction(FormRequest $request, User $payer, $dueOnDate, $transactionStatus)
+    function insertTransaction(FormRequest $request, User $payer, $dueOnDate)
     {
         $transaction = Transaction::create([
             'amount' => $request->amount,
@@ -53,9 +51,8 @@ class TransactionsController extends Controller
             'due_on' => $dueOnDate,
             'VAT' => $request->VAT,
             'is_VAT_inclusive' => $request->is_VAT_inclusive,
+            'is_paid' => false
         ]);
-
-        $transaction->statuses()->attach($transactionStatus->id);
 
         return $transaction;
     }
@@ -89,7 +86,8 @@ class TransactionsController extends Controller
             $transaction = $this->insertTransaction($request, $payer, $dueOnDate, $transactionStatus);
 
             return response()->json([
-                'transaction' => $transaction
+                'transaction' => $transaction,
+                'transaction_status' => $transactionStatus
             ]);
         } catch (\Throwable $th) {
             Log::error($th->getMessage());
@@ -97,6 +95,13 @@ class TransactionsController extends Controller
         }
     }
 
+    /**
+     * Get all transactions by admin only
+     *
+     * @param FormRequest $request
+     * @param User $authUser
+     * @return void
+     */
     public function allTransactions(FormRequest $request, $authUser = null)
     {
         try {

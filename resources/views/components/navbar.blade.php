@@ -6,7 +6,7 @@
         <div class="flex justify-center">
             <a class="underline mx-3 text-white text-xl" href="{{url('/transactions')}}">View Transactions</a>
             @if (Auth::user()->hasRole('admin'))
-                <a class="underline mx-3 text-white text-xl" href="{{url('/createFinancials')}}">Create Transactions</a>
+                <a class="underline mx-3 text-white text-xl" href="{{url('/createFinancials')}}">Create Transactions/Payment</a>
             @endif
         </div>
         <!-- User Dropdown -->

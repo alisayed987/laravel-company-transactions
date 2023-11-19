@@ -1,4 +1,4 @@
-<div class="max-w-4xl mx-auto mt-8 p-6 bg-gray-100 rounded shadow-md">
+<div class="max-w-5xl mx-auto mt-8 p-6 bg-gray-100 rounded shadow-md">
     <!-- Payments UI -->
     @if ($this->payments['transaction_id'] ?? null)
         <button class="flex items center p-3 rounded-lg bg-blue-400" wire:click="backFromPayment">
@@ -43,6 +43,7 @@
                     <th class="py-2 px-4 border-b">Due On</th>
                     <th class="py-2 px-4 border-b">VAT</th>
                     <th class="py-2 px-4 border-b">Is VAT Inclusive</th>
+                    <th class="py-2 px-4 border-b">Is Paid</th>
                 </tr>
             </thead>
             <tbody>
@@ -57,6 +58,7 @@
                         <td class="py-2 px-4 border-b">{{ $transaction['due_on'] }}</td>
                         <td class="py-2 px-4 border-b">{{ $transaction['VAT'] }}</td>
                         <td class="py-2 px-4 border-b">{{ $transaction['is_VAT_inclusive'] ? 'Yes' : 'No' }}</td>
+                        <td class="py-2 px-4 border-b">{{ $transaction['is_paid'] ? 'Yes' : 'No' }}</td>
                     </tr>
                 @endforeach
             </tbody>

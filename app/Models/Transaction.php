@@ -16,6 +16,7 @@ class Transaction extends Model
         'due_on',
         'VAT',
         'is_VAT_inclusive',
+        'is_paid'
     ];
 
     public function payments()
