@@ -25,6 +25,9 @@ Route::post('/allTransactions', [TransactionsController::class, 'allTransactions
 Route::post('/customerTransactions', [TransactionsController::class, 'customerTransactions'])
     ->middleware(['auth:sanctum']);
 
+Route::post('/getReport', [TransactionsController::class, 'getReport'])
+    ->middleware(['auth:sanctum']);
+
 Route::post('/addPayment', [PaymentsController::class, 'addPayment'])
     ->middleware(['auth:sanctum']);
 
